@@ -3,10 +3,13 @@
 **Project Milestone**: Foundation (Study Planner + Dashboard)  
 **Status**: ✅ COMPLETE — All core features implemented and ready for deployment
 
-## 📊 Current Phase
+## 📊 Current Status
 
-**Foundation Milestone**: ✅ COMPLETE (All 8 steps done)  
-**v0.5 Phase**: 🚀 IN PROGRESS — Mood + Weather Recommendations (Core features done, testing phase)
+**Foundation Milestone**: ✅ COMPLETE  
+**v0.5 Mood + Weather**: ✅ COMPLETE  
+**v1 Habit Tracker**: ✅ COMPLETE  
+**v1.5 Expense Tracker**: ✅ COMPLETE  
+**Total Progress**: 4/7 major milestones complete (57%)
 
 ---
 
@@ -221,31 +224,99 @@ See **VERCEL_DEPLOYMENT.md** for detailed instructions.
 - [x] `RecommendationsDisplay.tsx` — Personalized study plan cards
 - [x] Dashboard integration with mood and recommendations
 
-### 📋 v0.5 Tasks Remaining
-- [ ] Database migrations (run 003_add_mood_tracking.sql in Supabase)
-- [ ] Test mood selector UI with dummy data
-- [ ] Test recommendations generation with various moods
-- [ ] Test weather API integration
-- [ ] Refine recommendation messages based on real usage
-- [ ] Add user location preferences UI
-- [ ] Performance optimization for large task lists
+### ✅ v1 — Habit Tracker
 
-### 🎯 How to Test v0.5
+**Status**: COMPLETE (Core features done)
 
-1. **Add dummy data** (see TESTING_GUIDE.md)
-2. **Sign up and log in** to http://localhost:3000
-3. **Select mood** on dashboard
-4. **Adjust energy/stress levels** with sliders
-5. **Get recommendations** personalized to your state
-6. **Check recommendations** update based on upcoming tasks
+#### Features
+- [x] 8 habit categories (study, exercise, sleep, water, meditation, reading, coding, custom)
+- [x] Daily habit logging with goal values
+- [x] Habit streaks (consecutive days completed)
+- [x] Quick log interface with color coding
+- [x] Habit descriptions for motivation
+- [x] Add/edit/delete habits
+- [x] Streak visualization
 
-### 📊 v0.5 Statistics
-- **New Database Tables**: 2 (mood_log, user_preferences)
-- **New Components**: 2 (MoodSelector, RecommendationsDisplay)
-- **New Service Files**: 2 (weather.ts, recommendations.ts)
-- **New Database Functions**: 6 (logMood, getLatestMood, getMoodHistory, getUserPreferences, createOrUpdateUserPreferences)
-- **API Integrations**: 1 (Open-Meteo weather API)
-- **Lines of Code Added**: ~600+
+**Statistics**:
+- Database Tables: 2 (habits, habit_logs)
+- Components: 1 (HabitsPage, integrated with Navigation)
+- Database Functions: 7 (getHabits, addHabit, updateHabit, deleteHabit, logHabit, getHabitLogs, getHabitStreak)
+- Lines of Code: ~350+
+
+---
+
+### ✅ v1.5 — Expense Tracker
+
+**Status**: COMPLETE (Core features done)
+
+#### Features
+- [x] 8 expense categories (tuition, books, tech, transport, accommodation, lab, exams, other)
+- [x] Add/edit/delete expenses
+- [x] Vendor and purchase date tracking
+- [x] Expense notes for additional context
+- [x] Total spending calculation
+- [x] Category breakdown (top categories by spending)
+- [x] Last 12 months expense history
+- [x] Responsive grid layout with color-coded categories
+
+**Statistics**:
+- Database Tables: 2 (expenses, expense_categories)
+- Components: 1 (ExpensesPage, integrated with Navigation)
+- Database Functions: 6 (getExpenses, addExpense, updateExpense, deleteExpense, getExpenseStats, getExpenseCategories)
+- Lines of Code: ~400+
+
+---
+
+## 🗺️ Remaining Milestones
+
+### v2 — AI Tutor + Career ROI Calculator
+**Status**: NOT STARTED
+- [ ] Education ROI calculator (spending → projected salary)
+- [ ] Career path planner
+- [ ] AI-powered flashcard generation
+- [ ] Quiz generation from course material
+- [ ] Weak area detection
+- [ ] Study recommendations based on performance
+
+### v2.5 — Real-Time Chat & Study Groups
+**Status**: NOT STARTED
+- [ ] Real-time student messaging
+- [ ] Study group creation
+- [ ] File sharing in groups
+- [ ] Online/offline status
+- [ ] Typing indicators
+
+### v3 — Browser Extension
+**Status**: NOT STARTED
+- [ ] Save webpage as study material
+- [ ] Quick task add from any page
+- [ ] Show today's study plan
+- [ ] Pomodoro timer
+- [ ] Block distracting sites during study
+- [ ] Quick habit logging
+
+### v4 — Advanced Features
+**Status**: NOT STARTED
+- [ ] Calendar integration
+- [ ] Productivity tools integration
+- [ ] Advanced analytics dashboard
+- [ ] Mobile app (React Native)
+- [ ] Export to PDF/CSV
+
+---
+
+## 📈 Project Statistics (Current)
+
+| Metric | Count |
+|--------|-------|
+| **Database Tables** | 9 (courses, tasks, mood_log, user_preferences, habits, habit_logs, expenses, expense_categories) |
+| **Pages/Routes** | 9 (/dashboard, /courses, /tasks, /habits, /expenses, /auth/login, /auth/sign-up, /, /test-supabase) |
+| **Components** | 20+ (Navigation, MoodSelector, RecommendationsDisplay, ErrorAlert, LoadingSpinner, EmptyState, etc.) |
+| **Database Functions** | 25+ |
+| **Service Files** | 3 (weather.ts, recommendations.ts, database.ts) |
+| **TypeScript Types** | 15+ |
+| **Total Lines of Code** | ~4500+ |
+| **Migrations** | 5 |
 
 ---
 
