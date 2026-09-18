@@ -572,3 +572,139 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
   if (error) throw error
   return data || []
 }
+
+export type CareerGoal = {
+  id: string
+  user_id: string
+  career_title: string
+  target_salary: number
+  expected_salary_after_5yr: number
+  industry: string | null
+  location: string | null
+  graduation_year: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type SalaryData = {
+  id: string
+  career_title: string
+  industry: string | null
+  entry_level_salary: number | null
+  mid_level_salary: number | null
+  senior_level_salary: number | null
+  country: string
+  year_updated: number | null
+  created_at: string
+}
+
+export type EducationROI = {
+  totalInvested: number
+  targetSalary: number
+  monthsToBreakEven: number
+  breakEvenSalary: number
+  yearlyROI: number
+  careySalaryMultiplier: number
+  investmentCategory: 'excellent' | 'good' | 'fair' | 'needs-review'
+}
+
+export async function getCareerGoal(): Promise<CareerGoal | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('career_goals').select('*').single()
+
+  if (error && error.code !== 'PGRST116') throw error
+  return data || null
+}
+
+export async function setCareerGoal(
+  careerTitle: string,
+  targetSalary: number,
+  expectedSalaryAfter5yr?: number,
+  industry?: string,
+  location?: string,
+  graduationYear?: number,
+  notes?: string
+): Promise<CareerGoal> {
+  const supabase = createClient()
+  const existing = await getCareerGoal()
+
+  const data = {
+    career_title: careerTitle,
+    target_salary: targetSalary,
+    expected_salary_after_5yr: expectedSalaryAfter5yr || targetSalary * 1.3,
+    industry: industry || null,
+    location: location || null,
+    graduation_year: graduationYear || null,
+    notes: notes || null,
+  }
+
+  if (existing) {
+    const { data: result, error } = await supabase
+      .from('career_goals')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return result
+  } else {
+    const { data: result, error } = await supabase
+      .from('career_goals')
+      .insert([data])
+      .select()
+      .single()
+
+    if (error) throw error
+    return result
+  }
+}
+
+export async function getSalaryData(careerTitle?: string): Promise<SalaryData[]> {
+  const supabase = createClient()
+  let query = supabase.from('salary_data').select('*')
+
+  if (careerTitle) {
+    query = query.ilike('career_title', `%${careerTitle}%`)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+}
+
+export async function calculateEducationROI(totalInvested: number, targetSalary: number): Promise<EducationROI> {
+  // Calculate months to break even
+  const monthlyIncome = targetSalary / 12
+  const monthsToBreakEven = Math.ceil(totalInvested / monthlyIncome)
+
+  // Calculate yearly ROI percentage
+  const yearlyROI = ((targetSalary - 0) / totalInvested) * 100
+
+  // Calculate career salary multiplier
+  const careySalaryMultiplier = Math.round((targetSalary * 40) / totalInvested * 100) / 100 // 40 year career
+
+  // Determine investment category
+  let investmentCategory: 'excellent' | 'good' | 'fair' | 'needs-review'
+  if (monthsToBreakEven <= 12) {
+    investmentCategory = 'excellent'
+  } else if (monthsToBreakEven <= 24) {
+    investmentCategory = 'good'
+  } else if (monthsToBreakEven <= 36) {
+    investmentCategory = 'fair'
+  } else {
+    investmentCategory = 'needs-review'
+  }
+
+  return {
+    totalInvested,
+    targetSalary,
+    monthsToBreakEven,
+    breakEvenSalary: Math.round(totalInvested),
+    yearlyROI: Math.round(yearlyROI),
+    careySalaryMultiplier,
+    investmentCategory,
+  }
+}
