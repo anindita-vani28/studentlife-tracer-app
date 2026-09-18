@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getCourses, addCourse, deleteCourse, updateCourse, type Course } from '@/lib/supabase/database'
-import { logout } from '@/app/actions/auth'
+import { Navigation } from '@/app/components/Navigation'
+import { ErrorAlert } from '@/app/components/ErrorAlert'
+import { LoadingSpinner } from '@/app/components/LoadingSpinner'
+import { EmptyState } from '@/app/components/EmptyState'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,42 +95,12 @@ export default function CoursesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    )
+    return <LoadingSpinner message="Loading courses..." />
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-blue-600">Aninditabk</h1>
-              <div className="flex space-x-6">
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                  Dashboard
-                </Link>
-                <Link href="/courses" className="text-blue-600 font-semibold">
-                  Courses
-                </Link>
-                <Link href="/tasks" className="text-gray-600 hover:text-gray-900">
-                  Tasks
-                </Link>
-              </div>
-            </div>
-            <button
-              onClick={() => logout()}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Log Out
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navigation currentPage="courses" />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -142,11 +114,7 @@ export default function CoursesPage() {
           </button>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded p-4 mb-6 text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErrorAlert message={error} onDismiss={() => setError(null)} />}
 
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-8">
@@ -209,9 +177,13 @@ export default function CoursesPage() {
         )}
 
         {courses.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 text-lg">No courses yet. Create your first course to get started!</p>
-          </div>
+          <EmptyState
+            icon="📚"
+            title="No Courses Yet"
+            description="Create your first course to start organizing your study materials."
+            actionLabel="Create Course"
+            actionHref="/courses"
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (

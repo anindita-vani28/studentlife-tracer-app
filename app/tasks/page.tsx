@@ -13,7 +13,10 @@ import {
   type Task,
   type Course,
 } from '@/lib/supabase/database'
-import { logout } from '@/app/actions/auth'
+import { Navigation } from '@/app/components/Navigation'
+import { ErrorAlert } from '@/app/components/ErrorAlert'
+import { LoadingSpinner } from '@/app/components/LoadingSpinner'
+import { EmptyState } from '@/app/components/EmptyState'
 
 export const dynamic = 'force-dynamic'
 
@@ -180,54 +183,21 @@ export default function TasksPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    )
+    return <LoadingSpinner message="Loading tasks..." />
   }
 
   if (courses.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-8">
-                <h1 className="text-2xl font-bold text-blue-600">Aninditabk</h1>
-                <div className="flex space-x-6">
-                  <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                    Dashboard
-                  </Link>
-                  <Link href="/courses" className="text-gray-600 hover:text-gray-900">
-                    Courses
-                  </Link>
-                  <Link href="/tasks" className="text-blue-600 font-semibold">
-                    Tasks
-                  </Link>
-                </div>
-              </div>
-              <button
-                onClick={() => logout()}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </nav>
+        <Navigation currentPage="tasks" />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 text-lg mb-4">
-              No courses yet. Please create a course first before adding tasks.
-            </p>
-            <Link
-              href="/courses"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
-            >
-              Go to Courses
-            </Link>
-          </div>
+          <EmptyState
+            icon="📝"
+            title="No Courses Yet"
+            description="Create a course first before adding tasks."
+            actionLabel="Create Course"
+            actionHref="/courses"
+          />
         </main>
       </div>
     )
@@ -235,33 +205,7 @@ export default function TasksPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-blue-600">Aninditabk</h1>
-              <div className="flex space-x-6">
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                  Dashboard
-                </Link>
-                <Link href="/courses" className="text-gray-600 hover:text-gray-900">
-                  Courses
-                </Link>
-                <Link href="/tasks" className="text-blue-600 font-semibold">
-                  Tasks
-                </Link>
-              </div>
-            </div>
-            <button
-              onClick={() => logout()}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-            >
-              Log Out
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navigation currentPage="tasks" />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -275,11 +219,7 @@ export default function TasksPage() {
           </button>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded p-4 mb-6 text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErrorAlert message={error} onDismiss={() => setError(null)} />}
 
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-8">
@@ -410,9 +350,13 @@ export default function TasksPage() {
         )}
 
         {tasks.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 text-lg">No tasks yet. Create your first task to get started!</p>
-          </div>
+          <EmptyState
+            icon="✅"
+            title="No Tasks Yet"
+            description="Create your first task to organize your study schedule."
+            actionLabel="Create Task"
+            actionHref="/tasks"
+          />
         ) : (
           <div className="space-y-4">
             {tasks.map((task) => (

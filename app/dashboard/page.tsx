@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { logout } from '@/app/actions/auth'
 import { getCourses, getTasks, type Course, type Task } from '@/lib/supabase/database'
+import { Navigation } from '@/app/components/Navigation'
+import { LoadingSpinner } from '@/app/components/LoadingSpinner'
 import type { User } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -111,45 +112,12 @@ export default function Dashboard() {
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    )
+    return <LoadingSpinner message="Loading your dashboard..." />
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-blue-600">Aninditabk</h1>
-              <div className="flex space-x-6">
-                <Link href="/dashboard" className="text-blue-600 font-semibold">
-                  Dashboard
-                </Link>
-                <Link href="/courses" className="text-gray-600 hover:text-gray-900">
-                  Courses
-                </Link>
-                <Link href="/tasks" className="text-gray-600 hover:text-gray-900">
-                  Tasks
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">{user?.email}</span>
-              <button
-                onClick={() => logout()}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation currentPage="dashboard" userEmail={user?.email} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
