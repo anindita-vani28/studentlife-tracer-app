@@ -6,7 +6,7 @@
 ## 📊 Current Phase
 
 **Foundation Milestone**: ✅ COMPLETE (All 8 steps done)  
-**Next Phase**: 🚀 v0.5 — Mood + Weather Recommendations (IN PROGRESS)
+**v0.5 Phase**: 🚀 IN PROGRESS — Mood + Weather Recommendations (Core features done, testing phase)
 
 ---
 
@@ -183,6 +183,69 @@ See **VERCEL_DEPLOYMENT.md** for detailed instructions.
 - ✅ Data validation
 - ✅ XSS protection (React/Next.js)
 - ✅ CSRF protection (Supabase Auth)
+
+---
+
+## 🚀 v0.5 Milestone — Mood + Weather Recommendations
+
+### Status: In Development (Core Features Complete)
+
+### ✅ Completed Features
+
+#### Database & API
+- [x] `mood_log` table with mood, energy_level, stress_level tracking
+- [x] `user_preferences` table for study settings and location
+- [x] Row Level Security policies for both tables
+- [x] Database helper functions in `lib/supabase/database.ts`
+
+#### Weather Integration
+- [x] OpenWeatherMeta API service (`lib/weather.ts`)
+- [x] Location geocoding (city name → lat/lng)
+- [x] Current weather fetching (temperature, conditions, humidity, wind)
+- [x] Weather interpretation (rainy, cloudy, stormy detection)
+
+#### Recommendation Engine
+- [x] Smart recommendation generation combining:
+  - Mood state (energetic, motivated, tired, stressed, etc.)
+  - Energy and stress levels (1-5 scale)
+  - Current weather conditions
+  - Task urgency (due date)
+  - Task difficulty
+  - Available study time
+- [x] Dynamic study session durations based on mood
+- [x] Task prioritization algorithm
+- [x] Personalized daily messages with context awareness
+
+#### UI Components
+- [x] `MoodSelector.tsx` — 8 mood options with energy/stress sliders
+- [x] `RecommendationsDisplay.tsx` — Personalized study plan cards
+- [x] Dashboard integration with mood and recommendations
+
+### 📋 v0.5 Tasks Remaining
+- [ ] Database migrations (run 003_add_mood_tracking.sql in Supabase)
+- [ ] Test mood selector UI with dummy data
+- [ ] Test recommendations generation with various moods
+- [ ] Test weather API integration
+- [ ] Refine recommendation messages based on real usage
+- [ ] Add user location preferences UI
+- [ ] Performance optimization for large task lists
+
+### 🎯 How to Test v0.5
+
+1. **Add dummy data** (see TESTING_GUIDE.md)
+2. **Sign up and log in** to http://localhost:3000
+3. **Select mood** on dashboard
+4. **Adjust energy/stress levels** with sliders
+5. **Get recommendations** personalized to your state
+6. **Check recommendations** update based on upcoming tasks
+
+### 📊 v0.5 Statistics
+- **New Database Tables**: 2 (mood_log, user_preferences)
+- **New Components**: 2 (MoodSelector, RecommendationsDisplay)
+- **New Service Files**: 2 (weather.ts, recommendations.ts)
+- **New Database Functions**: 6 (logMood, getLatestMood, getMoodHistory, getUserPreferences, createOrUpdateUserPreferences)
+- **API Integrations**: 1 (Open-Meteo weather API)
+- **Lines of Code Added**: ~600+
 
 ---
 
