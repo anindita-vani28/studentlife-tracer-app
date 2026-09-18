@@ -28,6 +28,9 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'done'>('all')
+  const [filterDifficulty, setFilterDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all')
   const [formData, setFormData] = useState({
     courseId: '',
     title: '',
@@ -181,6 +184,18 @@ export default function TasksPage() {
   const getCourseName = (courseId: string) => {
     return courses.find((c) => c.id === courseId)?.name || 'Unknown'
   }
+
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getCourseName(task.course_id).toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus = filterStatus === 'all' || task.status === filterStatus
+    const matchesDifficulty = filterDifficulty === 'all' || task.difficulty === filterDifficulty
+
+    return matchesSearch && matchesStatus && matchesDifficulty
+  })
 
   if (loading) {
     return <LoadingSpinner message="Loading tasks..." />
@@ -349,7 +364,69 @@ export default function TasksPage() {
           </div>
         )}
 
-        {tasks.length === 0 ? (
+        {/* Filter Controls */}
+        {tasks.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search Tasks
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search by title, description, or course..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'done')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="pending">Pending</option>
+                  <option value="done">Completed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Difficulty
+                </label>
+                <select
+                  value={filterDifficulty}
+                  onChange={(e) => setFilterDifficulty(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Difficulties</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+            </div>
+            {filteredTasks.length !== tasks.length && (
+              <p className="mt-3 text-sm text-gray-600">
+                Showing {filteredTasks.length} of {tasks.length} tasks
+              </p>
+            )}
+          </div>
+        )}
+
+        {filteredTasks.length === 0 && tasks.length > 0 ? (
+          <EmptyState
+            icon="🔍"
+            title="No Tasks Match Your Filters"
+            description="Try adjusting your search or filter criteria."
+          />
+        ) : filteredTasks.length === 0 ? (
           <EmptyState
             icon="✅"
             title="No Tasks Yet"
@@ -359,7 +436,7 @@ export default function TasksPage() {
           />
         ) : (
           <div className="space-y-4">
-            {tasks.map((task) => (
+            {filteredTasks.map((task) => (
               <div
                 key={task.id}
                 className="bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4"
