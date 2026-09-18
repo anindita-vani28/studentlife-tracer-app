@@ -147,3 +147,123 @@ export async function deleteTask(id: string): Promise<void> {
 
   if (error) throw error
 }
+
+export type MoodLog = {
+  id: string
+  user_id: string
+  mood: string
+  energy_level: number | null
+  stress_level: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type UserPreferences = {
+  id: string
+  user_id: string
+  location: string | null
+  weather_api_key: string | null
+  preferred_study_duration: number
+  preferred_break_duration: number
+  enable_weather_recommendations: boolean
+  enable_mood_recommendations: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function logMood(
+  mood: string,
+  energyLevel?: number,
+  stressLevel?: number,
+  notes?: string
+): Promise<MoodLog> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('mood_log')
+    .insert([{ mood, energy_level: energyLevel || null, stress_level: stressLevel || null, notes: notes || null }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getLatestMood(): Promise<MoodLog | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('mood_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error && error.code !== 'PGRST116') throw error
+  return data || null
+}
+
+export async function getMoodHistory(days: number = 7): Promise<MoodLog[]> {
+  const supabase = createClient()
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+
+  const { data, error } = await supabase
+    .from('mood_log')
+    .select('*')
+    .gte('created_at', since.toISOString())
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getUserPreferences(): Promise<UserPreferences | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('*')
+    .single()
+
+  if (error && error.code !== 'PGRST116') throw error
+  return data || null
+}
+
+export async function createOrUpdateUserPreferences(
+  location?: string,
+  preferredStudyDuration?: number,
+  preferredBreakDuration?: number,
+  enableWeatherRecommendations?: boolean,
+  enableMoodRecommendations?: boolean
+): Promise<UserPreferences> {
+  const supabase = createClient()
+  const preferences = {
+    location: location || null,
+    preferred_study_duration: preferredStudyDuration || 60,
+    preferred_break_duration: preferredBreakDuration || 15,
+    enable_weather_recommendations: enableWeatherRecommendations !== false,
+    enable_mood_recommendations: enableMoodRecommendations !== false,
+  }
+
+  const existing = await getUserPreferences()
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .update({ ...preferences, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } else {
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .insert([preferences])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+}

@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { getCourses, getTasks, type Course, type Task } from '@/lib/supabase/database'
+import { getCourses, getTasks, getLatestMood, type Course, type Task } from '@/lib/supabase/database'
 import { Navigation } from '@/app/components/Navigation'
 import { LoadingSpinner } from '@/app/components/LoadingSpinner'
+import MoodSelector from '@/app/components/MoodSelector'
+import RecommendationsDisplay from '@/app/components/RecommendationsDisplay'
+import { generateRecommendations, type DailyRecommendations } from '@/lib/recommendations'
+import { getWeatherByLocation } from '@/lib/weather'
 import type { User } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +27,8 @@ export default function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [recommendations, setRecommendations] = useState<DailyRecommendations | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -32,9 +38,43 @@ export default function Dashboard() {
         setUser(data?.user ?? null)
 
         if (data?.user) {
-          const [coursesData, tasksData] = await Promise.all([getCourses(), getTasks()])
+          const [coursesData, tasksData, moodData] = await Promise.all([
+            getCourses(),
+            getTasks(),
+            getLatestMood(),
+          ])
           setCourses(coursesData)
           setTasks(tasksData)
+
+          // Load recommendations if mood exists
+          if (moodData) {
+            try {
+              setWeatherLoading(true)
+              // Default to "New York" for now - in production, user would set location
+              const weather = await getWeatherByLocation('New York')
+              const recs = generateRecommendations(
+                moodData.mood,
+                moodData.energy_level,
+                moodData.stress_level,
+                weather,
+                tasksData
+              )
+              setRecommendations(recs)
+            } catch (weatherErr) {
+              console.warn('Weather API not available:', weatherErr)
+              // Generate recommendations without weather
+              const recs = generateRecommendations(
+                moodData.mood,
+                moodData.energy_level,
+                moodData.stress_level,
+                null,
+                tasksData
+              )
+              setRecommendations(recs)
+            } finally {
+              setWeatherLoading(false)
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load data:', err)
@@ -125,6 +165,10 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold text-gray-900">Welcome back, {user?.email?.split('@')[0]}!</h2>
           <p className="text-gray-600 mt-1">Track your study progress and stay on top of deadlines</p>
         </div>
+
+        {/* Mood Selector and Recommendations */}
+        <MoodSelector />
+        <RecommendationsDisplay recommendations={recommendations} loading={weatherLoading} />
 
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
