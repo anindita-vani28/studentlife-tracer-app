@@ -267,3 +267,175 @@ export async function createOrUpdateUserPreferences(
     return data
   }
 }
+
+export type Habit = {
+  id: string
+  user_id: string
+  name: string
+  description: string | null
+  category: string
+  goal_value: number
+  goal_unit: string
+  color: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type HabitLog = {
+  id: string
+  user_id: string
+  habit_id: string
+  log_date: string
+  value: number
+  notes: string | null
+  completed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getHabits(activeOnly: boolean = true): Promise<Habit[]> {
+  const supabase = createClient()
+  let query = supabase.from('habits').select('*').order('created_at', { ascending: false })
+
+  if (activeOnly) {
+    query = query.eq('is_active', true)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+}
+
+export async function addHabit(
+  name: string,
+  category: string,
+  goalValue: number,
+  goalUnit: string,
+  description?: string,
+  color?: string
+): Promise<Habit> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('habits')
+    .insert([{ name, category, goal_value: goalValue, goal_unit: goalUnit, description: description || null, color: color || '#3B82F6' }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateHabit(
+  id: string,
+  name: string,
+  category: string,
+  goalValue: number,
+  goalUnit: string,
+  description?: string,
+  color?: string,
+  isActive?: boolean
+): Promise<Habit> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('habits')
+    .update({
+      name,
+      category,
+      goal_value: goalValue,
+      goal_unit: goalUnit,
+      description: description || null,
+      color: color || '#3B82F6',
+      is_active: isActive !== undefined ? isActive : true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteHabit(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.from('habits').delete().eq('id', id)
+
+  if (error) throw error
+}
+
+export async function logHabit(habitId: string, value: number, logDate?: string, notes?: string): Promise<HabitLog> {
+  const supabase = createClient()
+  const date = logDate || new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('habit_logs')
+    .upsert([
+      {
+        habit_id: habitId,
+        log_date: date,
+        value,
+        notes: notes || null,
+        completed: true,
+      },
+    ])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getHabitLogs(habitId: string, daysBack: number = 30): Promise<HabitLog[]> {
+  const supabase = createClient()
+  const since = new Date()
+  since.setDate(since.getDate() - daysBack)
+
+  const { data, error } = await supabase
+    .from('habit_logs')
+    .select('*')
+    .eq('habit_id', habitId)
+    .gte('log_date', since.toISOString().split('T')[0])
+    .order('log_date', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getHabitStreak(habitId: string): Promise<number> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('habit_logs')
+    .select('log_date')
+    .eq('habit_id', habitId)
+    .eq('completed', true)
+    .order('log_date', { ascending: false })
+
+  if (error) throw error
+
+  if (!data || data.length === 0) return 0
+
+  let streak = 0
+  let expectedDate = new Date()
+  expectedDate.setHours(0, 0, 0, 0)
+
+  for (const log of data) {
+    const logDate = new Date(log.log_date)
+    logDate.setHours(0, 0, 0, 0)
+
+    const daysDiff = (expectedDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24)
+
+    if (daysDiff === 0) {
+      streak++
+      expectedDate.setDate(expectedDate.getDate() - 1)
+    } else if (daysDiff === 1) {
+      streak++
+      expectedDate.setDate(expectedDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  return streak
+}
