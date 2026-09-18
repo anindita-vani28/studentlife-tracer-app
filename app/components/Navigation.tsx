@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
 
 interface NavigationProps {
-  currentPage: 'dashboard' | 'courses' | 'tasks' | 'habits'
+  currentPage: 'dashboard' | 'courses' | 'tasks' | 'habits' | 'expenses'
   userEmail?: string
 }
 
@@ -55,6 +55,16 @@ export function Navigation({ currentPage, userEmail }: NavigationProps) {
                 }`}
               >
                 Habits
+              </Link>
+              <Link
+                href="/expenses"
+                className={`${
+                  currentPage === 'expenses'
+                    ? 'text-blue-600 font-semibold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Expenses
               </Link>
             </div>
           </div>

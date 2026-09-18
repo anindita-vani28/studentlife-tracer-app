@@ -439,3 +439,136 @@ export async function getHabitStreak(habitId: string): Promise<number> {
 
   return streak
 }
+
+export type Expense = {
+  id: string
+  user_id: string
+  category: string
+  description: string
+  amount: number
+  currency: string
+  purchase_date: string
+  vendor: string | null
+  notes: string | null
+  receipt_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ExpenseCategory = {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  is_predefined: boolean
+  created_at: string
+}
+
+export async function getExpenses(monthsBack?: number): Promise<Expense[]> {
+  const supabase = createClient()
+  let query = supabase.from('expenses').select('*').order('purchase_date', { ascending: false })
+
+  if (monthsBack) {
+    const since = new Date()
+    since.setMonth(since.getMonth() - monthsBack)
+    query = query.gte('purchase_date', since.toISOString().split('T')[0])
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+}
+
+export async function addExpense(
+  category: string,
+  description: string,
+  amount: number,
+  purchaseDate: string,
+  vendor?: string,
+  notes?: string,
+  currency?: string
+): Promise<Expense> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert([{
+      category,
+      description,
+      amount,
+      purchase_date: purchaseDate,
+      vendor: vendor || null,
+      notes: notes || null,
+      currency: currency || 'USD',
+    }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateExpense(
+  id: string,
+  category: string,
+  description: string,
+  amount: number,
+  purchaseDate: string,
+  vendor?: string,
+  notes?: string,
+  currency?: string
+): Promise<Expense> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('expenses')
+    .update({
+      category,
+      description,
+      amount,
+      purchase_date: purchaseDate,
+      vendor: vendor || null,
+      notes: notes || null,
+      currency: currency || 'USD',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.from('expenses').delete().eq('id', id)
+
+  if (error) throw error
+}
+
+export async function getExpenseStats(): Promise<{ total: number; byCategory: Record<string, number> }> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('expenses').select('amount, category')
+
+  if (error) throw error
+
+  const total = (data || []).reduce((sum, exp) => sum + exp.amount, 0)
+  const byCategory = (data || []).reduce((acc: Record<string, number>, exp) => {
+    acc[exp.category] = (acc[exp.category] || 0) + exp.amount
+    return acc
+  }, {})
+
+  return { total, byCategory }
+}
+
+export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('expense_categories')
+    .select('*')
+    .order('is_predefined', { ascending: false })
+    .order('name', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
