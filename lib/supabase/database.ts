@@ -196,10 +196,9 @@ export async function getLatestMood(): Promise<MoodLog | null> {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
 
-  if (error && error.code !== 'PGRST116') throw error
-  return data || null
+  if (error) throw error
+  return (data && data.length > 0) ? data[0] : null
 }
 
 export async function getMoodHistory(days: number = 7): Promise<MoodLog[]> {
@@ -222,10 +221,10 @@ export async function getUserPreferences(): Promise<UserPreferences | null> {
   const { data, error } = await supabase
     .from('user_preferences')
     .select('*')
-    .single()
+    .limit(1)
 
-  if (error && error.code !== 'PGRST116') throw error
-  return data || null
+  if (error) throw error
+  return (data && data.length > 0) ? data[0] : null
 }
 
 export async function createOrUpdateUserPreferences(
@@ -611,10 +610,10 @@ export type EducationROI = {
 
 export async function getCareerGoal(): Promise<CareerGoal | null> {
   const supabase = createClient()
-  const { data, error } = await supabase.from('career_goals').select('*').single()
+  const { data, error } = await supabase.from('career_goals').select('*').limit(1)
 
-  if (error && error.code !== 'PGRST116') throw error
-  return data || null
+  if (error) throw error
+  return (data && data.length > 0) ? data[0] : null
 }
 
 export async function setCareerGoal(

@@ -62,33 +62,45 @@ export default function AnalyticsPage() {
         setUser(data?.user ?? null)
 
         if (data?.user) {
-          const [stats, career] = await Promise.all([getExpenseStats(), getCareerGoal()])
-
-          setTotalSpending(stats.total)
-          setCareerGoalState(career)
-
-          if (career && career.target_salary > 0) {
-            const roiData = await calculateEducationROI(stats.total, career.target_salary)
-            setROI(roiData)
-
-            const salaries = await getSalaryData(career.career_title)
-            setSalaryData(salaries)
+          try {
+            const stats = await getExpenseStats()
+            setTotalSpending(stats.total)
+          } catch (statsErr) {
+            console.warn('Error loading expense stats:', statsErr)
+            setTotalSpending(0)
           }
 
-          if (career) {
-            setFormData({
-              careerTitle: career.career_title,
-              targetSalary: career.target_salary.toString(),
-              salaryAfter5: career.expected_salary_after_5yr.toString(),
-              industry: career.industry || '',
-              location: career.location || '',
-              graduationYear: career.graduation_year || new Date().getFullYear() + 3,
-            })
+          try {
+            const career = await getCareerGoal()
+            setCareerGoalState(career)
+
+            if (career && career.target_salary > 0) {
+              const stats = await getExpenseStats()
+              const roiData = await calculateEducationROI(stats.total, career.target_salary)
+              setROI(roiData)
+
+              const salaries = await getSalaryData(career.career_title)
+              setSalaryData(salaries)
+            }
+
+            if (career) {
+              setFormData({
+                careerTitle: career.career_title || '',
+                targetSalary: (career.target_salary || '').toString(),
+                salaryAfter5: (career.expected_salary_after_5yr || '').toString(),
+                industry: career.industry || '',
+                location: career.location || '',
+                graduationYear: career.graduation_year || new Date().getFullYear() + 3,
+              })
+            }
+          } catch (careerErr) {
+            console.warn('Error loading career goal:', careerErr)
+            // This is OK - user just hasn't set a career goal yet
           }
         }
       } catch (err) {
         console.error('Failed to load analytics:', err)
-        setError('Failed to load analytics')
+        setError('An error occurred loading your analytics. Make sure the database migrations are set up.')
       } finally {
         setLoading(false)
       }
