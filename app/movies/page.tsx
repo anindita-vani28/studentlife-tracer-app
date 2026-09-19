@@ -6,6 +6,100 @@ import { Navigation } from '@/app/components/Navigation'
 
 const CATEGORIES = ['Technology', 'Science', 'Business', 'Entrepreneurship', 'History', 'Motivation', 'Psychology', 'Creativity', 'Inspiration', 'Sci-Fi', 'Documentaries', 'Education', 'Mathematics', 'Mental Health', 'Stock Market', 'Law', 'Justice', 'Award Winner', 'Ethics', 'Human Rights', 'Family', 'Life Lessons', 'Social Commentary', 'Innovation', 'Activism', 'Investigative', 'Classic', 'Adventure', 'Music', 'Comedy', 'Drama', 'Thriller', 'Finance', 'Economics']
 
+function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: { movie: any; isInWatchlist: boolean; onToggleWatchlist: () => void; isToggling: boolean }) {
+  const [isFlipped, setIsFlipped] = useState(false)
+
+  const isOscarWinner = movie.categories?.includes('Award Winner') ?? false
+
+  return (
+    <div className="h-80 cursor-pointer perspective" onClick={() => setIsFlipped(!isFlipped)}>
+      <div
+        className="relative w-full h-full transition-transform duration-500 transform"
+        style={{
+          transformStyle: 'preserve-3d',
+          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
+      >
+        {/* Front of Card */}
+        <div
+          className="absolute w-full h-full bg-white rounded-lg shadow-lg overflow-hidden"
+          style={{ backfaceVisibility: 'hidden' }}
+        >
+          <div className="relative h-full flex flex-col">
+            {/* Poster */}
+            <div className="h-48 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+              <div className="text-gray-600 text-center text-sm">📽️ {movie.title}</div>
+            </div>
+
+            {/* Info */}
+            <div className="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{movie.title}</h3>
+                {movie.year && <p className="text-sm text-gray-600 mt-1">📅 {movie.year}</p>}
+              </div>
+
+              {/* Award Badge */}
+              {isOscarWinner && (
+                <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-2 mt-2">
+                  <p className="text-sm font-bold text-yellow-800">🏆 Oscar Winner</p>
+                </div>
+              )}
+            </div>
+
+            {/* Watchlist Button */}
+            <div className="p-4 border-t">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleWatchlist()
+                }}
+                disabled={isToggling}
+                className={`w-full py-2 rounded-lg font-semibold transition ${
+                  isInWatchlist
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isInWatchlist ? '❤️ In Watchlist' : '🤍 Add to Watchlist'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Back of Card */}
+        <div
+          className="absolute w-full h-full bg-white rounded-lg shadow-lg p-4 overflow-y-auto"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+        >
+          <div className="h-full flex flex-col">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Description</h3>
+            <p className="text-sm text-gray-700 mb-4">{movie.description}</p>
+            {movie.why_students_like && (
+              <>
+                <h4 className="text-md font-bold text-gray-900 mb-2">Why Students Like It</h4>
+                <p className="text-sm text-green-700 mb-4">✨ {movie.why_students_like}</p>
+              </>
+            )}
+            {movie.rating && <p className="text-sm font-semibold mt-auto">⭐ {movie.rating}/10</p>}
+            {movie.imdb_url && (
+              <a
+                href={movie.imdb_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-blue-600 hover:underline text-sm font-semibold"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View on IMDb →
+              </a>
+            )}
+            <p className="text-xs text-gray-500 mt-4 text-center">Click to flip</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MoviesPage() {
   const [movies, setMovies] = useState<any[]>([])
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set())
@@ -35,16 +129,16 @@ export default function MoviesPage() {
 
   async function toggleWatchlist(movieId: string, inWatchlist: boolean) {
     if (toggling.has(movieId)) return
-    
+
     setToggling(prev => new Set([...prev, movieId]))
     try {
       setError(null)
       if (inWatchlist) {
         await removeFromMovieWatchlist(movieId)
-        setWatchlist(prev => { 
+        setWatchlist(prev => {
           const next = new Set(prev)
           next.delete(movieId)
-          return next 
+          return next
         })
       } else {
         await addToMovieWatchlist(movieId, 'want_to_watch')
@@ -78,7 +172,7 @@ export default function MoviesPage() {
         )}
 
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🎬 Movie Picks</h1>
-        <p className="text-gray-600 mb-8">Curated movies for students - inspiring stories and powerful ideas</p>
+        <p className="text-gray-600 mb-8">Click any movie to flip and see full description</p>
 
         <div className="flex gap-2 mb-8">
           <button onClick={() => setView('browse')} className={`px-6 py-2 rounded-lg font-semibold ${view === 'browse' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>Browse Movies</button>
@@ -102,44 +196,17 @@ export default function MoviesPage() {
                 <p className="text-gray-600">Loading movies...</p>
               </div>
             ) : movies.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg"><h3 className="text-lg font-semibold text-gray-900">No movies found</h3><p className="text-gray-600">Make sure the migration SQL has been run in Supabase</p></div>
+              <div className="text-center py-12 bg-white rounded-lg"><h3 className="text-lg font-semibold text-gray-900">No movies found</h3></div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {movies.map((movie) => (
-                  <div key={movie.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
-                    {movie.poster_url && (
-                      <div className="relative h-48 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-                        <div className="text-gray-600 text-center">📽️ {movie.title}</div>
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 flex-1">{movie.title}</h3>
-                        <button 
-                          onClick={() => toggleWatchlist(movie.id, watchlist.has(movie.id))}
-                          disabled={toggling.has(movie.id)}
-                          className={`text-3xl ml-2 transition cursor-pointer ${
-                            watchlist.has(movie.id) 
-                              ? 'text-red-500 hover:text-red-600' 
-                              : 'text-white opacity-80 hover:opacity-100 drop-shadow-md'
-                          } ${toggling.has(movie.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          title={watchlist.has(movie.id) ? 'Remove from watchlist' : 'Add to watchlist'}
-                        >
-                          ❤️
-                        </button>
-                      </div>
-                      {movie.year && <p className="text-sm text-gray-600">{movie.year}</p>}
-                      {movie.description && <p className="text-sm text-gray-700 mt-2">{movie.description}</p>}
-                      {movie.why_students_like && <p className="text-sm text-green-700 mt-2">✨ {movie.why_students_like}</p>}
-                      {movie.duration_minutes && <p className="text-xs text-gray-500 mt-2">⏱️ {movie.duration_minutes} min</p>}
-                      {movie.rating && <p className="text-sm font-semibold mt-2">⭐ {movie.rating}/10</p>}
-                      {movie.imdb_url && (
-                        <a href={movie.imdb_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-4 text-blue-600 hover:underline text-sm font-semibold">
-                          View on IMDb →
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <MovieFlipCard
+                    key={movie.id}
+                    movie={movie}
+                    isInWatchlist={watchlist.has(movie.id)}
+                    onToggleWatchlist={() => toggleWatchlist(movie.id, watchlist.has(movie.id))}
+                    isToggling={toggling.has(movie.id)}
+                  />
                 ))}
               </div>
             )}
@@ -149,40 +216,20 @@ export default function MoviesPage() {
         {view === 'watchlist' && (
           <div>
             {watchlist.size === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center"><h3 className="text-lg font-semibold text-gray-900">Your watchlist is empty</h3><p className="text-gray-600">Click the ❤️ heart on any movie to add it to your watchlist!</p></div>
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <h3 className="text-lg font-semibold text-gray-900">Your watchlist is empty</h3>
+                <p className="text-gray-600">Click 🤍 to add movies to your watchlist!</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {movies.filter(m => watchlist.has(m.id)).map((movie) => (
-                  <div key={movie.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition border-2 border-red-300">
-                    {movie.poster_url && (
-                      <div className="relative h-48 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-                        <div className="text-gray-600 text-center">📽️ {movie.title}</div>
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 flex-1">{movie.title}</h3>
-                        <button 
-                          onClick={() => toggleWatchlist(movie.id, true)}
-                          disabled={toggling.has(movie.id)}
-                          className={`text-3xl ml-2 text-red-500 hover:text-red-600 transition cursor-pointer ${toggling.has(movie.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          title="Remove from watchlist"
-                        >
-                          ❤️
-                        </button>
-                      </div>
-                      {movie.year && <p className="text-sm text-gray-600">{movie.year}</p>}
-                      <p className="text-sm text-gray-700 mt-2">{movie.description}</p>
-                      {movie.why_students_like && <p className="text-sm text-green-700 mt-2">✨ {movie.why_students_like}</p>}
-                      {movie.duration_minutes && <p className="text-xs text-gray-500 mt-2">⏱️ {movie.duration_minutes} min</p>}
-                      {movie.rating && <p className="text-sm font-semibold mt-2">⭐ {movie.rating}/10</p>}
-                      {movie.imdb_url && (
-                        <a href={movie.imdb_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-4 text-blue-600 hover:underline text-sm font-semibold">
-                          View on IMDb →
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <MovieFlipCard
+                    key={movie.id}
+                    movie={movie}
+                    isInWatchlist={true}
+                    onToggleWatchlist={() => toggleWatchlist(movie.id, true)}
+                    isToggling={toggling.has(movie.id)}
+                  />
                 ))}
               </div>
             )}
