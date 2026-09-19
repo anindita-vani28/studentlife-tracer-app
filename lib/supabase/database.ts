@@ -707,3 +707,358 @@ export async function calculateEducationROI(totalInvested: number, targetSalary:
     investmentCategory,
   }
 }
+
+// ============================================================================
+// INTERNSHIP APPLICATION TRACKER
+// ============================================================================
+
+export type InternshipApplication = {
+  id: string
+  user_id: string
+  company_name: string
+  position_title: string
+  location: string | null
+  application_date: string
+  deadline: string | null
+  status: 'interested' | 'applied' | 'resume_submitted' | 'hr_screening' | 'interview' | 'offer' | 'accepted' | 'rejected' | 'withdrawn'
+  interview_stage: 'technical' | 'behavioral' | 'final' | null
+  hr_contact_name: string | null
+  hr_contact_email: string | null
+  hr_contact_phone: string | null
+  job_posting_url: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type InternshipFollowUp = {
+  id: string
+  user_id: string
+  application_id: string
+  reminder_date: string
+  reminder_text: string | null
+  completed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getInternshipApplications(): Promise<InternshipApplication[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('internship_applications')
+    .select('*')
+    .order('application_date', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function addInternshipApplication(application: Omit<InternshipApplication, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<InternshipApplication> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('internship_applications')
+    .insert([application])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateInternshipApplication(id: string, updates: Partial<InternshipApplication>): Promise<InternshipApplication> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('internship_applications')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteInternshipApplication(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.from('internship_applications').delete().eq('id', id)
+
+  if (error) throw error
+}
+
+export async function getInternshipFollowUps(applicationId?: string): Promise<InternshipFollowUp[]> {
+  const supabase = createClient()
+  let query = supabase.from('internship_follow_ups').select('*')
+
+  if (applicationId) {
+    query = query.eq('application_id', applicationId)
+  }
+
+  const { data, error } = await query.order('reminder_date', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function addInternshipFollowUp(followUp: Omit<InternshipFollowUp, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<InternshipFollowUp> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('internship_follow_ups')
+    .insert([followUp])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// ============================================================================
+// STUDENT OPPORTUNITY HUB
+// ============================================================================
+
+export type Opportunity = {
+  id: string
+  title: string
+  organizer: string
+  category: 'hackathon' | 'coding_competition' | 'olympiad' | 'scholarship' | 'research' | 'volunteering' | 'conference' | 'internship' | 'workshop'
+  eligibility: string | null
+  registration_opens: string | null
+  deadline: string
+  event_date: string | null
+  event_type: 'online' | 'in_person' | 'hybrid' | null
+  location: string | null
+  cost_amount: number
+  cost_currency: string
+  official_url: string | null
+  description: string | null
+  image_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type SavedOpportunity = {
+  id: string
+  user_id: string
+  opportunity_id: string
+  saved_at: string
+}
+
+export async function getOpportunities(category?: string): Promise<Opportunity[]> {
+  const supabase = createClient()
+  let query = supabase.from('opportunities').select('*')
+
+  if (category) {
+    query = query.eq('category', category)
+  }
+
+  const { data, error } = await query.order('deadline', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getSavedOpportunities(): Promise<(Opportunity & { saved_at: string })[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('saved_opportunities')
+    .select('opportunity_id, saved_at, opportunities(*)')
+    .order('saved_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map((item: any) => ({ ...item.opportunities, saved_at: item.saved_at }))
+}
+
+export async function saveOpportunity(opportunityId: string): Promise<SavedOpportunity> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('saved_opportunities')
+    .insert([{ opportunity_id: opportunityId }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function unsaveOpportunity(opportunityId: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('saved_opportunities')
+    .delete()
+    .eq('opportunity_id', opportunityId)
+
+  if (error) throw error
+}
+
+// ============================================================================
+// STUDENT DISCUSSION
+// ============================================================================
+
+export type DiscussionPost = {
+  id: string
+  user_id: string
+  title: string
+  description: string
+  tags: string[]
+  view_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type DiscussionComment = {
+  id: string
+  post_id: string
+  user_id: string
+  content: string
+  upvotes: number
+  created_at: string
+  updated_at: string
+}
+
+export async function getDiscussionPosts(): Promise<DiscussionPost[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('discussion_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getDiscussionPost(id: string): Promise<DiscussionPost | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('discussion_posts')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function createDiscussionPost(title: string, description: string, tags: string[] = []): Promise<DiscussionPost> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('discussion_posts')
+    .insert([{ title, description, tags }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getDiscussionComments(postId: string): Promise<DiscussionComment[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('discussion_comments')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function createDiscussionComment(postId: string, content: string): Promise<DiscussionComment> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('discussion_comments')
+    .insert([{ post_id: postId, content }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// ============================================================================
+// CURATED MOVIES
+// ============================================================================
+
+export type CuratedMovie = {
+  id: string
+  title: string
+  year: number | null
+  genre: string[]
+  description: string | null
+  why_students_like: string | null
+  poster_url: string | null
+  imdb_url: string | null
+  duration_minutes: number | null
+  rating: number | null
+  categories: string[]
+  created_at: string
+}
+
+export type MovieWatchlistItem = {
+  id: string
+  user_id: string
+  movie_id: string
+  status: 'want_to_watch' | 'watching' | 'watched'
+  rating: number | null
+  notes: string | null
+  added_at: string
+  watched_at: string | null
+}
+
+export async function getCuratedMovies(category?: string): Promise<CuratedMovie[]> {
+  const supabase = createClient()
+  let query = supabase.from('curated_movies').select('*')
+
+  if (category) {
+    query = query.contains('categories', [category])
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getMovieWatchlist(): Promise<(MovieWatchlistItem & { movie: CuratedMovie })[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('movie_watchlist')
+    .select('*, curated_movies(*)')
+    .order('added_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map((item: any) => ({ ...item, movie: item.curated_movies }))
+}
+
+export async function addToMovieWatchlist(movieId: string, status: 'want_to_watch' | 'watching' | 'watched' = 'want_to_watch'): Promise<MovieWatchlistItem> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('movie_watchlist')
+    .insert([{ movie_id: movieId, status }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateMovieWatchlistItem(movieId: string, updates: Partial<Omit<MovieWatchlistItem, 'id' | 'user_id' | 'movie_id' | 'added_at'>>): Promise<MovieWatchlistItem> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('movie_watchlist')
+    .update(updates)
+    .eq('movie_id', movieId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function removeFromMovieWatchlist(movieId: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('movie_watchlist')
+    .delete()
+    .eq('movie_id', movieId)
+
+  if (error) throw error
+}

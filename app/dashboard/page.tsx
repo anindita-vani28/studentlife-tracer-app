@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getCourses, getTasks, getLatestMood, type Course, type Task } from '@/lib/supabase/database'
 import { Navigation } from '@/app/components/Navigation'
-import { LoadingSpinner } from '@/app/components/LoadingSpinner'
 import MoodSelector from '@/app/components/MoodSelector'
 import RecommendationsDisplay from '@/app/components/RecommendationsDisplay'
 import { generateRecommendations, type DailyRecommendations } from '@/lib/recommendations'
@@ -29,6 +28,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [recommendations, setRecommendations] = useState<DailyRecommendations | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherEffect, setWeatherEffect] = useState<string>('clear')
 
   useEffect(() => {
     async function loadData() {
@@ -46,12 +46,17 @@ export default function Dashboard() {
           setCourses(coursesData)
           setTasks(tasksData)
 
-          // Load recommendations if mood exists
           if (moodData) {
             try {
               setWeatherLoading(true)
-              // Default to "New York" for now - in production, user would set location
               const weather = await getWeatherByLocation('New York')
+              
+              if (weather.isRaining) setWeatherEffect('rain')
+              else if (weather.isSnowing) setWeatherEffect('snow')
+              else if (weather.isStormy) setWeatherEffect('storm')
+              else if (weather.isCloudy) setWeatherEffect('cloudy')
+              else setWeatherEffect('clear')
+
               const recs = generateRecommendations(
                 moodData.mood,
                 moodData.energy_level,
@@ -62,7 +67,6 @@ export default function Dashboard() {
               setRecommendations(recs)
             } catch (weatherErr) {
               console.warn('Weather API not available:', weatherErr)
-              // Generate recommendations without weather
               const recs = generateRecommendations(
                 moodData.mood,
                 moodData.energy_level,
@@ -112,20 +116,16 @@ export default function Dashboard() {
 
   const calculateStudyStreak = (): number => {
     if (completedTasks.length === 0) return 0
-
     const completedDates = new Set(
       completedTasks.map((t) => new Date(t.updated_at).toISOString().split('T')[0])
     )
-
     let streak = 0
     let currentDate = new Date()
     currentDate.setHours(0, 0, 0, 0)
-
     while (completedDates.has(currentDate.toISOString().split('T')[0])) {
       streak++
       currentDate.setDate(currentDate.getDate() - 1)
     }
-
     return streak
   }
 
@@ -149,91 +149,130 @@ export default function Dashboard() {
 
   const streak = calculateStudyStreak()
   const courseStats = getCourseStats()
-  const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
+
+  const bgGradients: Record<string, string> = {
+    clear: 'from-blue-50 to-cyan-50',
+    cloudy: 'from-gray-100 to-gray-50',
+    rain: 'from-slate-100 to-blue-100',
+    snow: 'from-blue-50 to-white',
+    storm: 'from-gray-200 to-slate-100',
+  }
 
   if (loading) {
-    return <LoadingSpinner message="Loading your dashboard..." />
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation currentPage="dashboard" />
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-gray-600">Loading your dashboard...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gradient-to-br ${bgGradients[weatherEffect]} transition-all duration-1000`}>
       <Navigation currentPage="dashboard" userEmail={user?.email} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Weather Effect Overlay */}
+      {weatherEffect === 'rain' && (
+        <div className="fixed inset-0 pointer-events-none opacity-30">
+          <div className="animate-pulse absolute inset-0 bg-blue-500"></div>
+        </div>
+      )}
+      {weatherEffect === 'snow' && (
+        <div className="fixed inset-0 pointer-events-none opacity-20">
+          <div className="animate-pulse absolute inset-0 bg-white"></div>
+        </div>
+      )}
+
+      <main className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Welcome back, {user?.email?.split('@')[0]}!</h2>
-          <p className="text-gray-600 mt-1">Track your study progress and stay on top of deadlines</p>
+          <h1 className="text-4xl font-bold text-gray-900">Welcome, {user?.email?.split('@')[0] || 'Student'}!</h1>
+          <p className="text-gray-600 mt-2">Track your progress, manage tasks, and stay on top of your goals</p>
         </div>
 
-        {/* Mood Selector and Recommendations */}
-        <MoodSelector />
-        <RecommendationsDisplay recommendations={recommendations} loading={weatherLoading} />
-
-        {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-            <h3 className="text-gray-500 text-sm font-medium">Total Courses</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{courses.length}</p>
-            <p className="text-xs text-gray-600 mt-2">Active learning paths</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-            <h3 className="text-gray-500 text-sm font-medium">Completion Rate</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{completionRate}%</p>
-            <p className="text-xs text-gray-600 mt-2">{completedTasks.length} of {tasks.length} tasks done</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
-            <h3 className="text-gray-500 text-sm font-medium">Study Streak 🔥</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{streak}</p>
-            <p className="text-xs text-gray-600 mt-2">consecutive days with tasks</p>
-          </div>
-
-          <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${overdueTasks.length > 0 ? 'border-red-500' : 'border-green-500'}`}>
-            <h3 className="text-gray-500 text-sm font-medium">Overdue Tasks</h3>
-            <p className={`text-3xl font-bold mt-2 ${overdueTasks.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {overdueTasks.length}
-            </p>
-            <p className="text-xs text-gray-600 mt-2">{overdueTasks.length > 0 ? 'Urgent!' : 'All caught up'}</p>
-          </div>
-        </div>
-
-        {/* Next Upcoming Exam Widget */}
-        {nextUpcomingExam && (
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow p-6 mb-8 text-white">
-            <h3 className="text-sm font-medium opacity-90">NEXT UPCOMING EXAM</h3>
-            <div className="mt-4 flex items-start justify-between">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{nextUpcomingExam.title}</p>
-                <p className="text-purple-100 mt-2">{nextUpcomingExam.description || 'No description'}</p>
+                <p className="text-gray-600 text-sm font-medium">Total Tasks</p>
+                <p className="text-3xl font-bold text-gray-900">{tasks.length}</p>
               </div>
-              <div className="text-right">
-                <p className="text-4xl font-bold">{daysUntilExam}</p>
-                <p className="text-sm opacity-90">days remaining</p>
-              </div>
+              <span className="text-4xl">📋</span>
             </div>
-            <Link
-              href="/tasks"
-              className="inline-block mt-4 bg-white text-purple-600 font-semibold py-2 px-4 rounded-lg hover:bg-purple-50 transition"
-            >
-              View Exam Details
-            </Link>
           </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Due Today Section */}
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Pending</p>
+                <p className="text-3xl font-bold text-orange-600">{pendingTasks.length}</p>
+              </div>
+              <span className="text-4xl">⏳</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Completed</p>
+                <p className="text-3xl font-bold text-green-600">{completedTasks.length}</p>
+              </div>
+              <span className="text-4xl">✅</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Study Streak</p>
+                <p className="text-3xl font-bold text-purple-600">{streak}</p>
+              </div>
+              <span className="text-4xl">🔥</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mood & Recommendations */}
+        {recommendations && <RecommendationsDisplay recommendations={recommendations} />}
+        <MoodSelector />
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Overdue Tasks */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              Overdue
+            </h3>
+            {overdueTasks.length === 0 ? (
+              <p className="text-gray-500 text-center py-6">No overdue tasks!</p>
+            ) : (
+              <div className="space-y-3">
+                {overdueTasks.slice(0, 4).map((task) => (
+                  <div key={task.id} className="p-3 bg-red-50 rounded-lg border border-red-200 hover:shadow-md transition">
+                    <p className="font-medium text-gray-900 text-sm">{task.title}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {courses.find((c) => c.id === task.course_id)?.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Due Today */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <span className="text-yellow-500 mr-2">📅</span>
               Due Today
             </h3>
             {dueToday.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">No tasks due today!</p>
+              <p className="text-gray-500 text-center py-6">No tasks today!</p>
             ) : (
               <div className="space-y-3">
-                {dueToday.map((task) => (
+                {dueToday.slice(0, 4).map((task) => (
                   <div key={task.id} className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:shadow-md transition">
                     <p className="font-medium text-gray-900 text-sm">{task.title}</p>
                     <p className="text-xs text-gray-600 mt-1">
@@ -245,76 +284,99 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Due This Week Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-              <span className="text-blue-500 mr-2">📆</span>
-              Due This Week
-            </h3>
-            {dueThisWeek.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">No tasks this week!</p>
-            ) : (
-              <div className="space-y-3">
-                {dueThisWeek.slice(0, 4).map((task) => (
-                  <div key={task.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition">
-                    <p className="font-medium text-gray-900 text-sm">{task.title}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs text-gray-600">
-                        {courses.find((c) => c.id === task.course_id)?.name}
-                      </p>
-                      <p className="text-xs text-blue-600 font-semibold">
-                        {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {dueThisWeek.length > 4 && (
-                  <p className="text-xs text-gray-500 text-center pt-2">+{dueThisWeek.length - 4} more</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Course Progress */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-              <span className="text-green-500 mr-2">📚</span>
-              Course Progress
-            </h3>
-            {courseStats.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">
-                <Link href="/courses" className="text-blue-600 hover:underline">
-                  Create a course
-                </Link>
+          {/* Upcoming Exam */}
+          {nextUpcomingExam && (
+            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <span className="text-purple-500 mr-2">📝</span>
+                Next Exam
+              </h3>
+              <p className="text-2xl font-bold text-purple-600 mb-2">{nextUpcomingExam.title}</p>
+              <p className="text-gray-700 mb-4">
+                {courses.find((c) => c.id === nextUpcomingExam.course_id)?.name}
               </p>
-            ) : (
-              <div className="space-y-3">
-                {courseStats.slice(0, 4).map((stat) => (
-                  <div key={stat.courseId}>
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="text-sm font-medium text-gray-900">{stat.courseName}</p>
-                      <p className="text-xs text-gray-600">
-                        {stat.completedCount}/{stat.taskCount}
-                      </p>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{
-                          width: `${stat.taskCount > 0 ? (stat.completedCount / stat.taskCount) * 100 : 0}%`,
-                          backgroundColor: stat.courseColor,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-purple-100 rounded-lg p-3">
+                <p className="text-sm font-semibold text-purple-900">
+                  {daysUntilExam === 0
+                    ? '🚨 Today!'
+                    : daysUntilExam === 1
+                      ? '⏰ Tomorrow'
+                      : `${daysUntilExam} days left`}
+                </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+
+        {/* Due This Week Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <span className="text-blue-500 mr-2">📆</span>
+            Due This Week
+          </h3>
+          {dueThisWeek.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No tasks this week!</p>
+          ) : (
+            <div className="space-y-3">
+              {dueThisWeek.slice(0, 4).map((task) => (
+                <div key={task.id} className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition">
+                  <p className="font-medium text-gray-900 text-sm">{task.title}</p>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-xs text-gray-600">
+                      {courses.find((c) => c.id === task.course_id)?.name}
+                    </p>
+                    <p className="text-xs text-blue-600 font-semibold">
+                      {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {dueThisWeek.length > 4 && (
+                <p className="text-xs text-gray-500 text-center pt-2">+{dueThisWeek.length - 4} more</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Course Progress */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <span className="text-green-500 mr-2">📚</span>
+            Course Progress
+          </h3>
+          {courseStats.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">
+              <Link href="/courses" className="text-blue-600 hover:underline">
+                Create a course
+              </Link>
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {courseStats.slice(0, 4).map((stat) => (
+                <div key={stat.courseId}>
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-sm font-medium text-gray-900">{stat.courseName}</p>
+                    <p className="text-xs text-gray-600">
+                      {stat.completedCount}/{stat.taskCount}
+                    </p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all"
+                      style={{
+                        width: `${stat.taskCount > 0 ? (stat.completedCount / stat.taskCount) * 100 : 0}%`,
+                        backgroundColor: stat.courseColor,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
