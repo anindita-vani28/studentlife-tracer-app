@@ -19,6 +19,42 @@ body {
   box-sizing: border-box;
 }
 
+.movie-card {
+  perspective: 1200px;
+  border-radius: 1.35rem;
+  box-shadow:
+    0 22px 46px -24px rgba(2, 132, 199, 0.7),
+    0 10px 28px -16px rgba(15, 23, 42, 0.75),
+    0 0 0 1px rgba(148, 163, 184, 0.28);
+  transition: box-shadow 300ms ease, transform 300ms ease;
+}
+
+.movie-card:hover,
+.movie-card:focus-visible {
+  outline: none;
+  transform: translateY(-5px);
+  box-shadow:
+    0 28px 60px -24px rgba(6, 182, 212, 0.85),
+    0 14px 34px -16px rgba(15, 23, 42, 0.85),
+    0 0 0 1px rgba(103, 232, 249, 0.5);
+}
+
+.movie-card-inner {
+  transition: transform 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.movie-card-face {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .movie-card,
+  .movie-card-inner {
+    transition-duration: 1ms;
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

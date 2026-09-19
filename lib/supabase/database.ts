@@ -869,9 +869,13 @@ export async function getSavedOpportunities(): Promise<(Opportunity & { saved_at
 
 export async function saveOpportunity(opportunityId: string): Promise<SavedOpportunity> {
   const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (!user || userError) throw new Error("Must be logged in to save opportunity")
+  
   const { data, error } = await supabase
-    .from('saved_opportunities')
-    .insert([{ opportunity_id: opportunityId }])
+    .from("saved_opportunities")
+    .insert([{ user_id: user.id, opportunity_id: opportunityId }])
     .select()
     .single()
 
@@ -881,15 +885,18 @@ export async function saveOpportunity(opportunityId: string): Promise<SavedOppor
 
 export async function unsaveOpportunity(opportunityId: string): Promise<void> {
   const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (!user || userError) throw new Error("Must be logged in to unsave opportunity")
+  
   const { error } = await supabase
-    .from('saved_opportunities')
+    .from("saved_opportunities")
     .delete()
-    .eq('opportunity_id', opportunityId)
+    .eq("user_id", user.id)
+    .eq("opportunity_id", opportunityId)
 
   if (error) throw error
-}
-
-// ============================================================================
+}// ============================================================================
 // STUDENT DISCUSSION
 // ============================================================================
 

@@ -2,19 +2,81 @@
 
 import { useState, useEffect } from 'react'
 import { getCuratedMovies, getMovieWatchlist, addToMovieWatchlist, removeFromMovieWatchlist } from '@/lib/supabase/database'
+import type { CuratedMovie } from '@/lib/supabase/database'
 import { Navigation } from '@/app/components/Navigation'
 
 const CATEGORIES = ['Technology', 'Science', 'Business', 'Entrepreneurship', 'History', 'Motivation', 'Psychology', 'Creativity', 'Inspiration', 'Sci-Fi', 'Documentaries', 'Education', 'Mathematics', 'Mental Health', 'Stock Market', 'Law', 'Justice', 'Award Winner', 'Ethics', 'Human Rights', 'Family', 'Life Lessons', 'Social Commentary', 'Innovation', 'Activism', 'Investigative', 'Classic', 'Adventure', 'Music', 'Comedy', 'Drama', 'Thriller', 'Finance', 'Economics']
 
-function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: { movie: any; isInWatchlist: boolean; onToggleWatchlist: () => void; isToggling: boolean }) {
-  const [isFlipped, setIsFlipped] = useState(false)
+const POSTER_BY_TITLE: Record<string, string> = {
+  'The Social Network': '/movie-posters/the-social-network.png',
+  'The Imitation Game': '/movie-posters/the-imitation-game.png',
+  Inception: '/movie-posters/inception.jpg',
+  'Hidden Figures': '/movie-posters/hidden-figures.jpg',
+  'The Martian': '/movie-posters/the-martian.jpg',
+  'Good Will Hunting': '/movie-posters/good-will-hunting.png',
+  'A Beautiful Mind': '/movie-posters/a-beautiful-mind.jpg',
+  Whiplash: '/movie-posters/whiplash.jpg',
+  'Free Solo': '/movie-posters/free-solo.png',
+  Interstellar: '/movie-posters/interstellar.jpg',
+  'The Wolf of Wall Street': '/movie-posters/the-wolf-of-wall-street.png',
+  Moneyball: '/movie-posters/moneyball.jpg',
+  'Wall Street': '/movie-posters/wall-street.jpg',
+  'The Big Short': '/movie-posters/the-big-short.png',
+  'Enron: Smarter Guys in the Room': '/movie-posters/enron.jpg',
+  'Enron: The Smartest Guys in the Room': '/movie-posters/enron.jpg',
+  'Trading Places': '/movie-posters/trading-places.jpg',
+  'Margin Call': '/movie-posters/margin-call.jpg',
+  'Too Big to Fail': '/movie-posters/too-big-to-fail.jpg',
+  '12 Angry Men': '/movie-posters/12-angry-men.jpg',
+  Philadelphia: '/movie-posters/philadelphia.jpg',
+  'To Kill a Mockingbird': '/movie-posters/to-kill-a-mockingbird.jpg',
+  'A Few Good Men': '/movie-posters/a-few-good-men.jpg',
+  'Legally Blonde': '/movie-posters/legally-blonde.png',
+  Spotlight: '/movie-posters/spotlight.jpg',
+  'The Trial of the Chicago 7': '/movie-posters/the-trial-of-the-chicago-7.jpeg',
+  'Anatomy of a Murder': '/movie-posters/anatomy-of-a-murder.jpg',
+  Parasite: '/movie-posters/parasite.png',
+  Oppenheimer: '/movie-posters/oppenheimer.jpg',
+  CODA: '/movie-posters/coda.jpeg',
+  Nomadland: '/movie-posters/nomadland.jpeg',
+  'Everything Everywhere All at Once': '/movie-posters/everything-everywhere-all-at-once.jpg',
+  "Schindler's List": '/movie-posters/schindlers-list.jpg',
+  'Forrest Gump': '/movie-posters/forrest-gump.jpg',
+  'The Shawshank Redemption': '/movie-posters/the-shawshank-redemption.jpg',
+}
 
+type MovieFlipCardProps = {
+  movie: CuratedMovie
+  isInWatchlist: boolean
+  onToggleWatchlist: () => void
+  isToggling: boolean
+}
+
+function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: MovieFlipCardProps) {
+  const [isFlipped, setIsFlipped] = useState(false)
   const isOscarWinner = movie.categories?.includes('Award Winner') ?? false
+  const posterSrc = movie.poster_url || POSTER_BY_TITLE[movie.title]
+
+  function toggleFlip() {
+    setIsFlipped((flipped) => !flipped)
+  }
 
   return (
-    <div className="h-96 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
+    <article
+      className="movie-card group aspect-[2/3] cursor-pointer"
+      onClick={toggleFlip}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          toggleFlip()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${isFlipped ? 'Show poster for' : 'Show details for'} ${movie.title}`}
+    >
       <div
-        className="relative w-full h-full transition-transform duration-500 transform"
+        className="movie-card-inner relative h-full w-full"
         style={{
           transformStyle: 'preserve-3d',
           transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
@@ -22,92 +84,117 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
       >
         {/* Front of Card */}
         <div
-          className="absolute w-full h-full bg-white rounded-xl shadow-lg overflow-hidden"
+          className="movie-card-face absolute inset-0 overflow-hidden rounded-[1.35rem] bg-slate-900"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="relative h-full flex flex-col">
-            {/* Poster */}
-            <div className="h-64 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center overflow-hidden">
-              {movie.poster_url ? (
-                <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-gray-600 text-center">🎬</div>
-              )}
+          {posterSrc ? (
+            <img
+              src={posterSrc}
+              alt={`${movie.title} theatrical poster`}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-5xl">
+              🎬
             </div>
+          )}
 
-            {/* Info Section */}
-            <div className="p-3 flex-1 flex flex-col justify-between bg-white">
-              <div>
-                <h3 className="text-base font-bold text-gray-900 line-clamp-2">{movie.title}</h3>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-sm text-gray-600">{movie.year || 'N/A'}</p>
-                  {isOscarWinner && (
-                    <p className="text-sm font-semibold text-yellow-600">🏆 Oscar Winner</p>
-                  )}
-                </div>
-              </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/5 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+            <div className="mb-2 flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/75">
+              <span>{movie.year || 'Movie'}</span>
+              {isOscarWinner && <span className="text-amber-300">🏆 Award winner</span>}
             </div>
-
-            {/* Watchlist Button */}
-            <div className="p-3 border-t bg-white">
+            <div className="flex items-end justify-between gap-3">
+              <h3 className="text-xl font-bold leading-tight drop-shadow-lg">{movie.title}</h3>
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
                   onToggleWatchlist()
                 }}
                 disabled={isToggling}
-                className={`w-full py-2 px-3 rounded-lg font-semibold text-sm transition ${
-                  isInWatchlist
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`grid size-11 shrink-0 place-items-center rounded-full border border-white/30 text-xl shadow-lg backdrop-blur-md transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isInWatchlist ? 'bg-rose-500/90' : 'bg-black/45 hover:bg-black/65'
+                }`}
+                aria-label={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Add ${movie.title} to watchlist`}
               >
-                {isInWatchlist ? '❤️ Added' : '🤍 Add to Watchlist'}
+                {isInWatchlist ? '♥' : '♡'}
               </button>
             </div>
+            <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-white/60">
+              Click to flip
+            </p>
           </div>
         </div>
 
         {/* Back of Card */}
         <div
-          className="absolute w-full h-full bg-white rounded-xl shadow-lg p-4 overflow-y-auto"
+          className="movie-card-face absolute inset-0 overflow-hidden rounded-[1.35rem] bg-slate-950 text-white"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <div className="h-full flex flex-col">
-            <h3 className="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Description</h3>
-            <p className="text-xs text-gray-700 mb-3 leading-relaxed">{movie.description}</p>
-            
+          {posterSrc && (
+            <img
+              src={posterSrc}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-md"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-950/90 to-cyan-950/90" />
+
+          <div className="relative flex h-full flex-col overflow-y-auto p-6">
+            <div className="mb-5">
+              <p className="text-[0.7rem] font-bold uppercase tracking-[0.22em] text-cyan-300">Movie details</p>
+              <h3 className="mt-2 text-2xl font-bold leading-tight">{movie.title}</h3>
+              <p className="mt-1 text-sm text-white/55">{movie.year || 'Year unavailable'}</p>
+            </div>
+
+            <p className="text-sm leading-6 text-white/80">{movie.description}</p>
+
             {movie.why_students_like && (
-              <>
-                <h4 className="text-xs font-bold text-gray-900 mb-1 uppercase tracking-wide">Why Students Love It</h4>
-                <p className="text-xs text-green-700 mb-3 leading-relaxed">✨ {movie.why_students_like}</p>
-              </>
+              <div className="mt-5 rounded-2xl bg-white/8 p-4 ring-1 ring-inset ring-white/10 backdrop-blur-sm">
+                <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Why students love it</h4>
+                <p className="mt-2 text-sm leading-5 text-white/75">{movie.why_students_like}</p>
+              </div>
             )}
-            
-            {movie.rating && <p className="text-xs font-semibold text-gray-800 mt-auto mb-2">⭐ {movie.rating}/10</p>}
-            
-            {movie.imdb_url && (
-              <a
-                href={movie.imdb_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline font-semibold mb-2"
-                onClick={(e) => e.stopPropagation()}
+
+            <div className="mt-auto pt-5">
+              {movie.rating && <p className="mb-4 text-sm font-semibold text-amber-300">★ {movie.rating}/10</p>}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onToggleWatchlist()
+                }}
+                disabled={isToggling}
+                className={`w-full rounded-xl px-4 py-3 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isInWatchlist
+                    ? 'bg-rose-500 text-white shadow-rose-950/40 hover:bg-rose-400'
+                    : 'bg-white text-slate-950 shadow-black/30 hover:bg-cyan-50'
+                }`}
               >
-                View on IMDb →
-              </a>
-            )}
-            
-            <p className="text-xs text-gray-500 text-center mt-3 pt-2 border-t">Click to flip</p>
+                {isToggling ? 'Updating…' : isInWatchlist ? '♥ In watchlist' : '♡ Add to watchlist'}
+              </button>
+              <p className="mt-4 text-center text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+                Click to see poster
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
 export default function MoviesPage() {
-  const [movies, setMovies] = useState<any[]>([])
+  const [movies, setMovies] = useState<CuratedMovie[]>([])
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
