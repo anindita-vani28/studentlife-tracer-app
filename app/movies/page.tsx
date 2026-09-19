@@ -12,7 +12,7 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
   const isOscarWinner = movie.categories?.includes('Award Winner') ?? false
 
   return (
-    <div className="h-80 cursor-pointer perspective" onClick={() => setIsFlipped(!isFlipped)}>
+    <div className="h-96 cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
       <div
         className="relative w-full h-full transition-transform duration-500 transform"
         style={{
@@ -22,45 +22,47 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
       >
         {/* Front of Card */}
         <div
-          className="absolute w-full h-full bg-white rounded-lg shadow-lg overflow-hidden"
+          className="absolute w-full h-full bg-white rounded-xl shadow-lg overflow-hidden"
           style={{ backfaceVisibility: 'hidden' }}
         >
           <div className="relative h-full flex flex-col">
             {/* Poster */}
-            <div className="h-48 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-              <div className="text-gray-600 text-center text-sm">📽️ {movie.title}</div>
-            </div>
-
-            {/* Info */}
-            <div className="p-4 flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{movie.title}</h3>
-                {movie.year && <p className="text-sm text-gray-600 mt-1">📅 {movie.year}</p>}
-              </div>
-
-              {/* Award Badge */}
-              {isOscarWinner && (
-                <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-2 mt-2">
-                  <p className="text-sm font-bold text-yellow-800">🏆 Oscar Winner</p>
-                </div>
+            <div className="h-64 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center overflow-hidden">
+              {movie.poster_url ? (
+                <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-gray-600 text-center">🎬</div>
               )}
             </div>
 
+            {/* Info Section */}
+            <div className="p-3 flex-1 flex flex-col justify-between bg-white">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 line-clamp-2">{movie.title}</h3>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-sm text-gray-600">{movie.year || 'N/A'}</p>
+                  {isOscarWinner && (
+                    <p className="text-sm font-semibold text-yellow-600">🏆 Oscar Winner</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Watchlist Button */}
-            <div className="p-4 border-t">
+            <div className="p-3 border-t bg-white">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   onToggleWatchlist()
                 }}
                 disabled={isToggling}
-                className={`w-full py-2 rounded-lg font-semibold transition ${
+                className={`w-full py-2 px-3 rounded-lg font-semibold text-sm transition ${
                   isInWatchlist
                     ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                 } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {isInWatchlist ? '❤️ In Watchlist' : '🤍 Add to Watchlist'}
+                {isInWatchlist ? '❤️ Added' : '🤍 Add to Watchlist'}
               </button>
             </div>
           </div>
@@ -68,31 +70,35 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
 
         {/* Back of Card */}
         <div
-          className="absolute w-full h-full bg-white rounded-lg shadow-lg p-4 overflow-y-auto"
+          className="absolute w-full h-full bg-white rounded-xl shadow-lg p-4 overflow-y-auto"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <div className="h-full flex flex-col">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Description</h3>
-            <p className="text-sm text-gray-700 mb-4">{movie.description}</p>
+            <h3 className="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Description</h3>
+            <p className="text-xs text-gray-700 mb-3 leading-relaxed">{movie.description}</p>
+            
             {movie.why_students_like && (
               <>
-                <h4 className="text-md font-bold text-gray-900 mb-2">Why Students Like It</h4>
-                <p className="text-sm text-green-700 mb-4">✨ {movie.why_students_like}</p>
+                <h4 className="text-xs font-bold text-gray-900 mb-1 uppercase tracking-wide">Why Students Love It</h4>
+                <p className="text-xs text-green-700 mb-3 leading-relaxed">✨ {movie.why_students_like}</p>
               </>
             )}
-            {movie.rating && <p className="text-sm font-semibold mt-auto">⭐ {movie.rating}/10</p>}
+            
+            {movie.rating && <p className="text-xs font-semibold text-gray-800 mt-auto mb-2">⭐ {movie.rating}/10</p>}
+            
             {movie.imdb_url && (
               <a
                 href={movie.imdb_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-block text-blue-600 hover:underline text-sm font-semibold"
+                className="text-xs text-blue-600 hover:underline font-semibold mb-2"
                 onClick={(e) => e.stopPropagation()}
               >
                 View on IMDb →
               </a>
             )}
-            <p className="text-xs text-gray-500 mt-4 text-center">Click to flip</p>
+            
+            <p className="text-xs text-gray-500 text-center mt-3 pt-2 border-t">Click to flip</p>
           </div>
         </div>
       </div>
@@ -163,7 +169,7 @@ export default function MoviesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage="movies" />
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {error && (
           <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-4 flex justify-between items-center">
             <span className="text-sm">{error}</span>
@@ -171,12 +177,15 @@ export default function MoviesPage() {
           </div>
         )}
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">🎬 Movie Picks</h1>
-        <p className="text-gray-600 mb-8">Click any movie to flip and see full description</p>
-
-        <div className="flex gap-2 mb-8">
-          <button onClick={() => setView('browse')} className={`px-6 py-2 rounded-lg font-semibold ${view === 'browse' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>Browse Movies</button>
-          <button onClick={() => setView('watchlist')} className={`px-6 py-2 rounded-lg font-semibold ${view === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>❤️ My Watchlist ({watchlist.size})</button>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">🎬 Movie Picks</h1>
+            <p className="text-gray-600 mt-2">Click any movie to flip and see full description</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setView('browse')} className={`px-6 py-2 rounded-lg font-semibold ${view === 'browse' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>Browse</button>
+            <button onClick={() => setView('watchlist')} className={`px-6 py-2 rounded-lg font-semibold ${view === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}>❤️ Watchlist ({watchlist.size})</button>
+          </div>
         </div>
 
         {view === 'browse' && (
@@ -198,7 +207,7 @@ export default function MoviesPage() {
             ) : movies.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg"><h3 className="text-lg font-semibold text-gray-900">No movies found</h3></div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {movies.map((movie) => (
                   <MovieFlipCard
                     key={movie.id}
@@ -221,7 +230,7 @@ export default function MoviesPage() {
                 <p className="text-gray-600">Click 🤍 to add movies to your watchlist!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {movies.filter(m => watchlist.has(m.id)).map((movie) => (
                   <MovieFlipCard
                     key={movie.id}
