@@ -101,7 +101,7 @@ export default function MoviesPage() {
                         <h3 className="text-lg font-bold text-gray-900 flex-1">{movie.title}</h3>
                         <button 
                           onClick={() => toggleWatchlist(movie.id, watchlist.has(movie.id))}
-                          className={`text-2xl ml-2 transition ${watchlist.has(movie.id) ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
+                          className={`text-2xl ml-2 transition ${watchlist.has(movie.id) ? 'text-red-500' : 'text-white hover:text-red-400 drop-shadow-lg'}`}
                           title={watchlist.has(movie.id) ? 'Remove from watchlist' : 'Add to watchlist'}
                         >
                           ❤️
