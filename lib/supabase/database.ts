@@ -1030,16 +1030,19 @@ export async function getMovieWatchlist(): Promise<(MovieWatchlistItem & { movie
 
 export async function addToMovieWatchlist(movieId: string, status: 'want_to_watch' | 'watching' | 'watched' = 'want_to_watch'): Promise<MovieWatchlistItem> {
   const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (!user || userError) throw new Error('Must be logged in to add to watchlist')
+  
   const { data, error } = await supabase
     .from('movie_watchlist')
-    .insert([{ movie_id: movieId, status }])
+    .insert([{ user_id: user.id, movie_id: movieId, status }])
     .select()
     .single()
 
   if (error) throw error
   return data
 }
-
 export async function updateMovieWatchlistItem(movieId: string, updates: Partial<Omit<MovieWatchlistItem, 'id' | 'user_id' | 'movie_id' | 'added_at'>>): Promise<MovieWatchlistItem> {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -1055,9 +1058,14 @@ export async function updateMovieWatchlistItem(movieId: string, updates: Partial
 
 export async function removeFromMovieWatchlist(movieId: string): Promise<void> {
   const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (!user || userError) throw new Error('Must be logged in to remove from watchlist')
+  
   const { error } = await supabase
     .from('movie_watchlist')
     .delete()
+    .eq('user_id', user.id)
     .eq('movie_id', movieId)
 
   if (error) throw error

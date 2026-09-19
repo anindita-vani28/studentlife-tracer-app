@@ -1,0 +1,29 @@
+-- Find this function around line 670:
+export async function addToMovieWatchlist(movieId: string, status: 'want_to_watch' | 'watching' | 'watched' = 'want_to_watch'): Promise<MovieWatchlistItem> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('movie_watchlist')
+    .insert([{ movie_id: movieId, status }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+-- Replace with this:
+export async function addToMovieWatchlist(movieId: string, status: 'want_to_watch' | 'watching' | 'watched' = 'want_to_watch'): Promise<MovieWatchlistItem> {
+  const supabase = createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (!user || userError) throw new Error('Must be logged in to add to watchlist')
+  
+  const { data, error } = await supabase
+    .from('movie_watchlist')
+    .insert([{ user_id: user.id, movie_id: movieId, status }])
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}

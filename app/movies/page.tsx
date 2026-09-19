@@ -10,6 +10,7 @@ export default function MoviesPage() {
   const [movies, setMovies] = useState<any[]>([])
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [view, setView] = useState<'browse' | 'watchlist'>('browse')
 
@@ -19,10 +20,14 @@ export default function MoviesPage() {
 
   async function loadData() {
     try {
+      setError(null)
       const moviesData = await getCuratedMovies(selectedCategory || undefined)
       const watchlistData = await getMovieWatchlist()
       setMovies(moviesData)
       setWatchlist(new Set(watchlistData.map(w => w.movie_id)))
+    } catch (err: any) {
+      console.error('Load error:', err)
+      setError(`Failed to load movies: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -30,6 +35,7 @@ export default function MoviesPage() {
 
   async function toggleWatchlist(movieId: string, inWatchlist: boolean) {
     try {
+      setError(null)
       if (inWatchlist) {
         await removeFromMovieWatchlist(movieId)
         setWatchlist(prev => { const next = new Set(prev); next.delete(movieId); return next })
@@ -37,8 +43,10 @@ export default function MoviesPage() {
         await addToMovieWatchlist(movieId, 'want_to_watch')
         setWatchlist(prev => new Set([...prev, movieId]))
       }
-    } catch (err) {
-      console.error('Error toggling watchlist:', err)
+    } catch (err: any) {
+      console.error('Watchlist toggle error:', err)
+      const errorMsg = err.message || 'Unknown error'
+      setError(inWatchlist ? `Failed to remove: ${errorMsg}` : `Failed to add: ${errorMsg}`)
     }
   }
 
@@ -46,6 +54,13 @@ export default function MoviesPage() {
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage="movies" />
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {error && (
+          <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-4 flex justify-between items-center">
+            <span className="text-sm">{error}</span>
+            <button onClick={() => setError(null)} className="font-semibold hover:text-red-900">×</button>
+          </div>
+        )}
+
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🎬 Movie Picks</h1>
         <p className="text-gray-600 mb-8">Curated movies for students - inspiring stories and powerful ideas</p>
 
@@ -66,9 +81,12 @@ export default function MoviesPage() {
             </div>
 
             {loading ? (
-              <div className="text-center py-12">Loading movies...</div>
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading movies...</p>
+              </div>
             ) : movies.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg"><h3 className="text-lg font-semibold text-gray-900">No movies in this category</h3></div>
+              <div className="text-center py-12 bg-white rounded-lg"><h3 className="text-lg font-semibold text-gray-900">No movies found</h3><p className="text-gray-600">Make sure the migration SQL has been run in Supabase</p></div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {movies.map((movie) => (
