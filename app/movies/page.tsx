@@ -13,6 +13,7 @@ export default function MoviesPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [view, setView] = useState<'browse' | 'watchlist'>('browse')
+  const [toggling, setToggling] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadData()
@@ -26,7 +27,6 @@ export default function MoviesPage() {
       setMovies(moviesData)
       setWatchlist(new Set(watchlistData.map(w => w.movie_id)))
     } catch (err: any) {
-      console.error('Load error:', err)
       setError(`Failed to load movies: ${err.message}`)
     } finally {
       setLoading(false)
@@ -34,19 +34,35 @@ export default function MoviesPage() {
   }
 
   async function toggleWatchlist(movieId: string, inWatchlist: boolean) {
+    if (toggling.has(movieId)) return
+    
+    setToggling(prev => new Set([...prev, movieId]))
     try {
       setError(null)
       if (inWatchlist) {
         await removeFromMovieWatchlist(movieId)
-        setWatchlist(prev => { const next = new Set(prev); next.delete(movieId); return next })
+        setWatchlist(prev => { 
+          const next = new Set(prev)
+          next.delete(movieId)
+          return next 
+        })
       } else {
         await addToMovieWatchlist(movieId, 'want_to_watch')
         setWatchlist(prev => new Set([...prev, movieId]))
       }
     } catch (err: any) {
-      console.error('Watchlist toggle error:', err)
       const errorMsg = err.message || 'Unknown error'
-      setError(inWatchlist ? `Failed to remove: ${errorMsg}` : `Failed to add: ${errorMsg}`)
+      if (errorMsg.includes('duplicate key')) {
+        setWatchlist(prev => new Set([...prev, movieId]))
+      } else {
+        setError(inWatchlist ? `Failed to remove: ${errorMsg}` : `Failed to add: ${errorMsg}`)
+      }
+    } finally {
+      setToggling(prev => {
+        const next = new Set(prev)
+        next.delete(movieId)
+        return next
+      })
     }
   }
 
@@ -101,7 +117,12 @@ export default function MoviesPage() {
                         <h3 className="text-lg font-bold text-gray-900 flex-1">{movie.title}</h3>
                         <button 
                           onClick={() => toggleWatchlist(movie.id, watchlist.has(movie.id))}
-                          className={`text-2xl ml-2 transition ${watchlist.has(movie.id) ? 'text-red-500' : 'text-white hover:text-red-400 drop-shadow-lg'}`}
+                          disabled={toggling.has(movie.id)}
+                          className={`text-3xl ml-2 transition cursor-pointer ${
+                            watchlist.has(movie.id) 
+                              ? 'text-red-500 hover:text-red-600' 
+                              : 'text-white opacity-80 hover:opacity-100 drop-shadow-md'
+                          } ${toggling.has(movie.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                           title={watchlist.has(movie.id) ? 'Remove from watchlist' : 'Add to watchlist'}
                         >
                           ❤️
@@ -143,7 +164,8 @@ export default function MoviesPage() {
                         <h3 className="text-lg font-bold text-gray-900 flex-1">{movie.title}</h3>
                         <button 
                           onClick={() => toggleWatchlist(movie.id, true)}
-                          className="text-2xl ml-2 text-red-500 hover:text-red-600 transition"
+                          disabled={toggling.has(movie.id)}
+                          className={`text-3xl ml-2 text-red-500 hover:text-red-600 transition cursor-pointer ${toggling.has(movie.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                           title="Remove from watchlist"
                         >
                           ❤️
