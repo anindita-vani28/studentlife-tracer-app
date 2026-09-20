@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { getCourses, getTasks, getLatestMood, type Course, type Task } from '@/lib/supabase/database'
+import { getCourses, getTasks, getLatestMood, getUserPreferences, type Course, type Task } from '@/lib/supabase/database'
 import { Navigation } from '@/app/components/Navigation'
 import MoodSelector from '@/app/components/MoodSelector'
 import RecommendationsDisplay from '@/app/components/RecommendationsDisplay'
 import { generateRecommendations, type DailyRecommendations } from '@/lib/recommendations'
-import { getWeatherByLocation } from '@/lib/weather'
+import { getWeatherByLocation, getWeatherTheme, type WeatherData, type WeatherTheme } from '@/lib/weather'
 import type { User } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +21,21 @@ interface CourseStats {
   completedCount: number
 }
 
+type DashboardWeather = WeatherData & {
+  location: {
+    name: string
+    country: string
+  }
+}
+
+function getWeatherIcon(theme: WeatherTheme, isDaytime: boolean): string {
+  if (theme === 'storm') return '⛈️'
+  if (theme === 'snow') return '❄️'
+  if (theme === 'rain') return '🌧️'
+  if (theme === 'cloudy') return '☁️'
+  return isDaytime ? '☀️' : '🌙'
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
@@ -28,7 +43,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [recommendations, setRecommendations] = useState<DailyRecommendations | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
-  const [weatherEffect, setWeatherEffect] = useState<string>('clear')
+  const [weatherEffect, setWeatherEffect] = useState<WeatherTheme>('clear')
+  const [weatherData, setWeatherData] = useState<DashboardWeather | null>(null)
+  const [isDaytime, setIsDaytime] = useState(true)
 
   useEffect(() => {
     async function loadData() {
@@ -37,51 +54,70 @@ export default function Dashboard() {
         const { data } = await supabase.auth.getUser()
         setUser(data?.user ?? null)
 
+        let tasksData: Task[] = []
+        let moodData: Awaited<ReturnType<typeof getLatestMood>> = null
+        let weatherLocation = 'New York'
+
         if (data?.user) {
-          const [coursesData, tasksData, moodData] = await Promise.all([
+          const [coursesResult, tasksResult, moodResult, preferencesResult] = await Promise.allSettled([
             getCourses(),
             getTasks(),
             getLatestMood(),
+            getUserPreferences(),
           ])
-          setCourses(coursesData)
-          setTasks(tasksData)
 
-          if (moodData) {
-            try {
-              setWeatherLoading(true)
-              const weather = await getWeatherByLocation('New York')
-              
-              if (weather.isRaining) setWeatherEffect('rain')
-              else if (weather.isSnowing) setWeatherEffect('snow')
-              else if (weather.isStormy) setWeatherEffect('storm')
-              else if (weather.isCloudy) setWeatherEffect('cloudy')
-              else setWeatherEffect('clear')
+          if (coursesResult.status === 'fulfilled') {
+            setCourses(coursesResult.value)
+          }
 
-              const recs = generateRecommendations(
-                moodData.mood,
-                moodData.energy_level,
-                moodData.stress_level,
-                weather,
-                tasksData
-              )
-              setRecommendations(recs)
-            } catch (weatherErr) {
-              console.warn('Weather API not available:', weatherErr)
-              const recs = generateRecommendations(
-                moodData.mood,
-                moodData.energy_level,
-                moodData.stress_level,
-                null,
-                tasksData
-              )
-              setRecommendations(recs)
-            } finally {
-              setWeatherLoading(false)
-            }
+          if (tasksResult.status === 'fulfilled') {
+            tasksData = tasksResult.value
+            setTasks(tasksData)
+          }
+
+          if (moodResult.status === 'fulfilled') {
+            moodData = moodResult.value
+          }
+
+          if (preferencesResult.status === 'fulfilled') {
+            weatherLocation = preferencesResult.value?.location?.trim() || weatherLocation
           }
         }
-      } catch (err) {
-        console.error('Failed to load data:', err)
+
+        try {
+          setWeatherLoading(true)
+          const weather = await getWeatherByLocation(weatherLocation)
+          setWeatherData(weather)
+          setWeatherEffect(getWeatherTheme(weather))
+          setIsDaytime(weather.isDaytime)
+
+          if (moodData) {
+            const recs = generateRecommendations(
+              moodData.mood,
+              moodData.energy_level,
+              moodData.stress_level,
+              weather,
+              tasksData
+            )
+            setRecommendations(recs)
+          }
+        } catch (weatherErr) {
+          console.warn('Weather API not available:', weatherErr)
+          if (moodData) {
+            const recs = generateRecommendations(
+              moodData.mood,
+              moodData.energy_level,
+              moodData.stress_level,
+              null,
+              tasksData
+            )
+            setRecommendations(recs)
+          }
+        } finally {
+          setWeatherLoading(false)
+        }
+      } catch {
+        setWeatherData(null)
       } finally {
         setLoading(false)
       }
@@ -150,14 +186,6 @@ export default function Dashboard() {
   const streak = calculateStudyStreak()
   const courseStats = getCourseStats()
 
-  const bgGradients: Record<string, string> = {
-    clear: 'from-blue-50 to-cyan-50',
-    cloudy: 'from-gray-100 to-gray-50',
-    rain: 'from-slate-100 to-blue-100',
-    snow: 'from-blue-50 to-white',
-    storm: 'from-gray-200 to-slate-100',
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -170,25 +198,41 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${bgGradients[weatherEffect]} transition-all duration-1000`}>
-      <Navigation currentPage="dashboard" userEmail={user?.email} />
-
-      {/* Weather Effect Overlay */}
-      {weatherEffect === 'rain' && (
-        <div className="fixed inset-0 pointer-events-none opacity-30">
-          <div className="animate-pulse absolute inset-0 bg-blue-500"></div>
-        </div>
-      )}
-      {weatherEffect === 'snow' && (
-        <div className="fixed inset-0 pointer-events-none opacity-20">
-          <div className="animate-pulse absolute inset-0 bg-white"></div>
-        </div>
-      )}
+    <div className={`weather-dashboard min-h-screen ${isDaytime ? 'weather-day' : 'weather-night'}`}>
+      <div className="relative z-20">
+        <Navigation currentPage="dashboard" userEmail={user?.email} />
+      </div>
 
       <main className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Welcome, {user?.email?.split('@')[0] || 'Student'}!</h1>
-          <p className="text-gray-600 mt-2">Track your progress, manage tasks, and stay on top of your goals</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className={`text-4xl font-bold transition-colors duration-1000 ${isDaytime ? 'text-gray-900' : 'text-white drop-shadow-lg'}`}>
+              Welcome, {user?.email?.split('@')[0] || 'Student'}!
+            </h1>
+            <p className={`mt-2 transition-colors duration-1000 ${isDaytime ? 'text-gray-600' : 'text-slate-200'}`}>
+              Track your progress, manage tasks, and stay on top of your goals
+            </p>
+          </div>
+
+          <div className="weather-status" aria-live="polite">
+            {weatherLoading ? (
+              <span className="text-sm font-medium text-slate-600">Updating weather…</span>
+            ) : weatherData ? (
+              <>
+                <span className="text-3xl" aria-hidden="true">{getWeatherIcon(weatherEffect, isDaytime)}</span>
+                <span>
+                  <strong className="block text-lg leading-tight text-slate-900">
+                    {Math.round(weatherData.temperature)}°F · {weatherData.condition}
+                  </strong>
+                  <span className="text-xs font-medium text-slate-600">
+                    {weatherData.location.name}{weatherData.location.country ? `, ${weatherData.location.country}` : ''}
+                  </span>
+                </span>
+              </>
+            ) : (
+              <span className="text-sm font-medium text-slate-600">Weather unavailable</span>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}

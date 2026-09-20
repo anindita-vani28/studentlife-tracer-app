@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { WeatherAppShell } from '@/app/components/WeatherAppShell'
 
 export const metadata: Metadata = {
   title: 'Aninditabk - Student Life AI Assistant',
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className="bg-gray-50 text-gray-900">{children}</body>
+      <body className="bg-gray-50 text-gray-900">
+        <WeatherAppShell>{children}</WeatherAppShell>
+      </body>
     </html>
   )
 }

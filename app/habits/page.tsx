@@ -140,8 +140,8 @@ export default function HabitsPage() {
       setHabits(habitsWithMeta)
       setError(null)
     } catch (err) {
-      console.error('Error logging habit:', err)
-      setError('Failed to log habit')
+      const message = err instanceof Error ? err.message : 'Please try again'
+      setError(`Failed to log habit: ${message}`)
     }
   }
 

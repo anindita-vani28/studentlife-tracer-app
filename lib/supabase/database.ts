@@ -367,18 +367,23 @@ export async function deleteHabit(id: string): Promise<void> {
 export async function logHabit(habitId: string, value: number, logDate?: string, notes?: string): Promise<HabitLog> {
   const supabase = createClient()
   const date = logDate || new Date().toISOString().split('T')[0]
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  if (userError) throw userError
+  if (!user) throw new Error('You must be logged in to record a habit')
 
   const { data, error } = await supabase
     .from('habit_logs')
     .upsert([
       {
+        user_id: user.id,
         habit_id: habitId,
         log_date: date,
         value,
         notes: notes || null,
         completed: true,
       },
-    ])
+    ], { onConflict: 'user_id,habit_id,log_date' })
     .select()
     .single()
 

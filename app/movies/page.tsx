@@ -5,7 +5,7 @@ import { getCuratedMovies, getMovieWatchlist, addToMovieWatchlist, removeFromMov
 import type { CuratedMovie } from '@/lib/supabase/database'
 import { Navigation } from '@/app/components/Navigation'
 
-const CATEGORIES = ['Technology', 'Science', 'Business', 'Entrepreneurship', 'History', 'Motivation', 'Psychology', 'Creativity', 'Inspiration', 'Sci-Fi', 'Documentaries', 'Education', 'Mathematics', 'Mental Health', 'Stock Market', 'Law', 'Justice', 'Award Winner', 'Ethics', 'Human Rights', 'Family', 'Life Lessons', 'Social Commentary', 'Innovation', 'Activism', 'Investigative', 'Classic', 'Adventure', 'Music', 'Comedy', 'Drama', 'Thriller', 'Finance', 'Economics']
+const CATEGORIES = ['Animation', 'Technology', 'Science', 'Business', 'Entrepreneurship', 'History', 'Motivation', 'Psychology', 'Creativity', 'Inspiration', 'Sci-Fi', 'Documentaries', 'Education', 'Mathematics', 'Mental Health', 'Stock Market', 'Law', 'Justice', 'Award Winner', 'Ethics', 'Human Rights', 'Family', 'Life Lessons', 'Social Commentary', 'Innovation', 'Activism', 'Investigative', 'Classic', 'Adventure', 'Music', 'Comedy', 'Drama', 'Thriller', 'Finance', 'Economics']
 
 const POSTER_BY_TITLE: Record<string, string> = {
   'The Social Network': '/movie-posters/the-social-network.png',
@@ -43,6 +43,19 @@ const POSTER_BY_TITLE: Record<string, string> = {
   "Schindler's List": '/movie-posters/schindlers-list.jpg',
   'Forrest Gump': '/movie-posters/forrest-gump.jpg',
   'The Shawshank Redemption': '/movie-posters/the-shawshank-redemption.jpg',
+  'Spirited Away': '/movie-posters/spirited-away.png',
+  'Spider-Man: Into the Spider-Verse': '/movie-posters/spider-man-into-the-spider-verse.png',
+  'The Lion King': '/movie-posters/the-lion-king.jpg',
+  'Toy Story': '/movie-posters/toy-story.jpg',
+  'WALL-E': '/movie-posters/wall-e.jpg',
+  Coco: '/movie-posters/coco.jpg',
+  Up: '/movie-posters/up.jpg',
+  Ratatouille: '/movie-posters/ratatouille.jpg',
+  'How to Train Your Dragon': '/movie-posters/how-to-train-your-dragon.jpg',
+  'The Incredibles': '/movie-posters/the-incredibles.jpg',
+  'Princess Mononoke': '/movie-posters/princess-mononoke.png',
+  'Finding Nemo': '/movie-posters/finding-nemo.jpg',
+  'Death Note': '/movie-posters/death-note.jpg',
 }
 
 type MovieFlipCardProps = {
@@ -125,9 +138,6 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
                 {isInWatchlist ? '♥' : '♡'}
               </button>
             </div>
-            <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-white/60">
-              Click to flip
-            </p>
           </div>
         </div>
 
@@ -151,8 +161,7 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
 
           <div className="relative flex h-full flex-col overflow-y-auto p-6">
             <div className="mb-5">
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.22em] text-cyan-300">Movie details</p>
-              <h3 className="mt-2 text-2xl font-bold leading-tight">{movie.title}</h3>
+              <h3 className="text-2xl font-bold leading-tight">{movie.title}</h3>
               <p className="mt-1 text-sm text-white/55">{movie.year || 'Year unavailable'}</p>
             </div>
 
@@ -182,9 +191,6 @@ function MovieFlipCard({ movie, isInWatchlist, onToggleWatchlist, isToggling }: 
               >
                 {isToggling ? 'Updating…' : isInWatchlist ? '♥ In watchlist' : '♡ Add to watchlist'}
               </button>
-              <p className="mt-4 text-center text-xs font-medium uppercase tracking-[0.16em] text-white/45">
-                Click to see poster
-              </p>
             </div>
           </div>
         </div>
